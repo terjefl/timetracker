@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Rapport{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <div><h1>Rapport</h1><p class="muted">Velg kunde og periode. Ufakturerte timer kan gjøres om til faktura.</p></div>
+</div>
+<section class="card no-print">
+  <form class="filters" method="get">
+    <div class="field"><label for="kunde">Kunde</label>
+      <select id="kunde" name="kunde">
+        <option value="">Alle kunder</option>
+        {% for c in customers %}<option value="{{ c.id }}" {{ 'selected' if filters.kunde == c.id|string }}>{{ c.name }}{{ ' (arkivert)' if not c.active }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="fra">Fra dato</label><input type="date" id="fra" name="fra" value="{{ filters.fra }}"></div>
+    <div class="field"><label for="til">Til dato</label><input type="date" id="til" name="til" value="{{ filters.til }}"></div>
+    <div class="field"><label for="status">Timer</label>
+      <select id="status" name="status">
+        <option value="ufakturert" {{ 'selected' if filters.status == 'ufakturert' }}>Kun ufakturerte</option>
+        <option value="fakturert" {{ 'selected' if filters.status == 'fakturert' }}>Kun fakturerte</option>
+        <option value="alle" {{ 'selected' if filters.status == 'alle' }}>Alle</option>
+      </select></div>
+    <button class="btn btn-primary" type="submit">Vis</button>
+  </form>
+</section>
+
+<div class="toolbar">
+  <div class="actions">
+    <button class="btn" onclick="window.print()">🖨 Skriv ut / PDF</button>
+    <a class="btn" href="/rapport.csv?{{ request.url.query }}">⬇ CSV</a>
+  </div>
+  {% if can_invoice %}
+  <form method="post" action="/fakturaer" class="actions" onsubmit="return confirm('Opprette faktura av {{ total.count }} registreringer ({{ total.amount|money }})?')">
+    <input type="hidden" name="customer_id" value="{{ customer.id }}">
+    <input type="hidden" name="fra" value="{{ filters.fra }}">
+    <input type="hidden" name="til" value="{{ filters.til }}">
+    <button class="btn btn-accent" type="submit">Lag faktura av disse timene →</button>
+  </form>
+  {% elif total.count and filters.status == 'ufakturert' and not customer %}
+    <span class="muted small">Velg én kunde for å lage faktura.</span>
+  {% endif %}
+</div>
+
+<article class="doc">
+  <div class="doc-head">
+    <div>
+      <div class="doc-brand"><img src="/static/logo.svg" alt=""><div>
+        <p class="doc-title">Timerapport</p>
+        <div class="muted small">{{ settings.sender_name }}</div>
+      </div></div>
+    </div>
+    <dl class="doc-meta">
+      <dt>Kunde</dt><dd>{{ customer.name if customer else 'Alle kunder' }}</dd>
+      <dt>Periode</dt><dd>{% if filters.fra or filters.til %}{{ filters.fra|date or '…' }} – {{ filters.til|date or '…' }}{% else %}Alt{% endif %}</dd>
+      <dt>Utvalg</dt><dd>{{ {'ufakturert': 'Ufakturerte timer', 'fakturert': 'Fakturerte timer', 'alle': 'Alle timer'}[filters.status] }}</dd>
+      <dt>Hentet</dt><dd>{{ generated }}</dd>
+    </dl>
+  </div>
+
+  {% for g in groups %}
+  <section class="{{ 'doc-group' if groups|length > 1 }}">
+    {% if groups|length > 1 %}<h2>{{ g.name }}</h2>{% endif %}
+    {% set multi = g.summary.by_type|length > 1 %}
+    <table>
+      <thead><tr><th>Dato</th>{% if multi %}<th>Type</th>{% endif %}<th>Beskrivelse</th><th class="num">Timer</th><th class="num">Beløp</th>{% if filters.status != 'ufakturert' %}<th class="num">Faktura</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for e in g.entries %}
+        <tr>
+          <td class="nowrap">{{ e.work_date|date }}</td>
+          {% if multi %}<td class="nowrap">{{ e.rate_name }}</td>{% endif %}
+          <td class="desc">{{ e.description }}</td>
+          <td class="num">{{ e.hours|hours }}</td>
+          <td class="num">{{ e.amount|money }}</td>
+          {% if filters.status != 'ufakturert' %}<td class="num">{{ '#%d' % e.invoice_number if e.invoice_number else '–' }}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <table class="doc-summary">
+      {% for t in g.summary.by_type %}
+        <tr><td>{{ t.name }} <span class="muted">{{ t.hours|hours }} t × {{ t.rate|rate }}</span></td><td class="num">{{ t.amount|money }}</td></tr>
+      {% endfor %}
+      <tr class="doc-total"><td>Sum {{ g.summary.hours|hours }} timer</td><td class="num">{{ g.summary.amount|money }}</td></tr>
+    </table>
+  </section>
+  {% else %}
+    <div class="empty">Ingen timer i utvalget.</div>
+  {% endfor %}
+
+  {% if groups|length > 1 %}
+    <table class="doc-summary">
+      <tr class="doc-total"><td>Totalt {{ total.hours|hours }} timer</td><td class="num">{{ total.amount|money }}</td></tr>
+    </table>
+  {% endif %}
+</article>
+{% endblock %}

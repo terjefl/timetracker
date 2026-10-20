@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Kunder{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Kunder</h1><p class="muted">Kunderegister med kontaktinfo og timepriser.</p></div>
+  <div class="actions">
+    {% if vis == 'alle' %}<a class="btn" href="/kunder">Bare aktive</a>{% else %}<a class="btn" href="/kunder?vis=alle">Vis arkiverte</a>{% endif %}
+    <a class="btn btn-primary" href="/kunder/ny">+ Ny kunde</a>
+  </div>
+</div>
+<section class="card">
+  {% if customers %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Navn</th><th>Telefon</th><th>E-post</th><th>Timepriser</th><th class="num">Ufakturert</th></tr></thead>
+    <tbody>
+    {% for c in customers %}
+      <tr class="clickable" onclick="location.href='/kunder/{{ c.id }}'">
+        <td><a href="/kunder/{{ c.id }}"><strong>{{ c.name }}</strong></a>{% if not c.active %} <span class="badge">Arkivert</span>{% endif %}</td>
+        <td class="nowrap">{% if c.phone %}<a href="tel:{{ c.phone|replace(' ', '') }}" onclick="event.stopPropagation()">{{ c.phone }}</a>{% endif %}</td>
+        <td>{% if c.email %}<a href="mailto:{{ c.email }}" onclick="event.stopPropagation()">{{ c.email }}</a>{% endif %}</td>
+        <td>
+          {% for r in rates[c.id] %}<span class="badge">{{ r.name }} {{ r.hourly_rate|rate }}</span> {% else %}<span class="muted small">Ingen</span>{% endfor %}
+        </td>
+        <td class="num">{{ c.unbilled_hours|hours }} t</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">Ingen kunder. <a href="/kunder/ny">Opprett en</a>.</div>
+  {% endif %}
+</section>
+{% endblock %}

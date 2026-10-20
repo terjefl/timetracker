@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Timetracker">
+  <defs>
+    <linearGradient id="tt-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d3557"/>
+      <stop offset="1" stop-color="#0f1c33"/>
+    </linearGradient>
+    <pattern id="tt-check" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#ffffff"/>
+      <rect width="3" height="3" fill="#1d3557"/>
+      <rect x="3" y="3" width="3" height="3" fill="#1d3557"/>
+    </pattern>
+    <clipPath id="tt-wedge">
+      <path d="M32 36 L32 20 A16 16 0 0 1 47.2 31.1 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#tt-bg)"/>
+  <!-- Krone og sideknapp -->
+  <rect x="28" y="8" width="8" height="4.5" rx="1.6" fill="#ff7a3d"/>
+  <rect x="30.5" y="11.5" width="3" height="4" fill="#e9eef5"/>
+  <rect x="45.2" y="14.6" width="5" height="3.6" rx="1.2" transform="rotate(45 47.7 16.4)" fill="#e9eef5"/>
+  <!-- Urskive -->
+  <circle cx="32" cy="36" r="19.5" fill="#e9eef5"/>
+  <circle cx="32" cy="36" r="16.5" fill="#ffffff"/>
+  <!-- Rutete segment = registrert tid -->
+  <rect x="30" y="18" width="20" height="20" fill="url(#tt-check)" clip-path="url(#tt-wedge)" opacity="0.9"/>
+  <!-- Timemerker -->
+  <g stroke="#1d3557" stroke-width="2" stroke-linecap="round">
+    <line x1="32" y1="21.5" x2="32" y2="23.5"/>
+    <line x1="46.5" y1="36" x2="44.5" y2="36"/>
+    <line x1="32" y1="50.5" x2="32" y2="48.5"/>
+    <line x1="17.5" y1="36" x2="19.5" y2="36"/>
+  </g>
+  <!-- Viser -->
+  <line x1="32" y1="36" x2="44.4" y2="32" stroke="#ff7a3d" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="32" cy="36" r="3" fill="#1d3557"/>
+  <circle cx="32" cy="36" r="1.2" fill="#ff7a3d"/>
+</svg>

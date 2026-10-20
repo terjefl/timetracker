@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Rediger timer{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><p class="small"><a href="/timer">← Timer</a></p><h1>Rediger registrering</h1></div>
+</div>
+<section class="card" style="max-width:560px">
+  {% if locked %}
+    <div class="callout">Timene ligger på <a href="/fakturaer/{{ entry.invoice_id }}">faktura #{{ entry.invoice_number }}</a> som er {{ STATUS_LABELS[entry.invoice_status]|lower }}, og kan ikke endres. Sett fakturaen tilbake til kladd for å endre.</div>
+  {% elif entry.invoice_id %}
+    <div class="callout">Timene ligger på fakturakladd <a href="/fakturaer/{{ entry.invoice_id }}">#{{ entry.invoice_number }}</a>. Endringer slår gjennom på kladden.</div>
+  {% endif %}
+  <form method="post" action="/timer/{{ entry.id }}">
+    {% set default_customer = entry.customer_id %}
+    {% include "_entry_fields.html" %}
+    {% if not locked %}
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Lagre</button>
+      <a class="btn" href="/timer">Avbryt</a>
+    </div>
+    {% endif %}
+  </form>
+  {% if not locked %}
+  <form method="post" action="/timer/{{ entry.id }}/slett" onsubmit="return confirm('Slette registreringen?')" style="margin-top:1rem">
+    <button class="btn btn-danger btn-sm">Slett registreringen</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

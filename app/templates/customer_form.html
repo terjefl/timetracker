@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ customer.name if customer else 'Ny kunde' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="small"><a href="/kunder">← Kunder</a></p>
+    <h1>{{ customer.name if customer else 'Ny kunde' }} {% if customer and not customer.active %}<span class="badge">Arkivert</span>{% endif %}</h1>
+  </div>
+  {% if customer %}
+  <div class="actions">
+    <a class="btn" href="/timer?kunde={{ customer.id }}">Timer</a>
+    <a class="btn btn-primary" href="/rapport?kunde={{ customer.id }}">Rapport / faktura</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if stats %}
+<div class="stats">
+  <div class="stat accent"><div class="stat-label">Ufakturert</div><div class="stat-value">{{ stats.unbilled_amount|money }}</div><div class="stat-sub">{{ stats.unbilled_hours|hours }} timer</div></div>
+  <div class="stat"><div class="stat-label">Totalt</div><div class="stat-value">{{ stats.hours|hours }} t</div><div class="stat-sub">{{ stats.amount|money }} · {{ stats.count }} registreringer</div></div>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Kontaktinformasjon</h2>
+    <form method="post" action="{{ '/kunder/%d' % customer.id if customer else '/kunder/ny' }}">
+      <div class="field"><label for="name">Navn</label><input id="name" name="name" required value="{{ customer.name if customer else '' }}" autofocus></div>
+      <div class="field-row">
+        <div class="field"><label for="phone">Telefon</label><input id="phone" name="phone" type="tel" value="{{ customer.phone if customer else '' }}"></div>
+        <div class="field"><label for="email">E-post</label><input id="email" name="email" type="email" value="{{ customer.email if customer else '' }}"></div>
+      </div>
+      <div class="field"><label for="address">Adresse <span class="hint">vises på fakturaen</span></label><textarea id="address" name="address" rows="2">{{ customer.address if customer else '' }}</textarea></div>
+      <div class="field"><label for="notes">Notater</label><textarea id="notes" name="notes" rows="2">{{ customer.notes if customer else '' }}</textarea></div>
+      {% if not customer %}
+      <div class="field-row">
+        <div class="field"><label for="rate_name">Pristype</label><input id="rate_name" name="rate_name" value="Standard"></div>
+        <div class="field"><label for="hourly_rate">Timepris (kr)</label><input id="hourly_rate" name="hourly_rate" inputmode="decimal" placeholder="f.eks. 650"></div>
+      </div>
+      <p class="hint">Flere pristyper (f.eks. «Helg») kan legges til etter at kunden er opprettet.</p>
+      {% endif %}
+      <div class="actions"><button class="btn btn-primary" type="submit">{{ 'Lagre' if customer else 'Opprett kunde' }}</button></div>
+    </form>
+  </section>
+
+  {% if customer %}
+  <section class="card" id="priser">
+    <h2>Timepriser</h2>
+    <div class="callout">
+      Med én pristype brukes den automatisk når du fører timer. Legger du inn flere, f.eks. «Standard» og «Helg», velger du type ved registrering.
+    </div>
+    {% for r in rates %}
+      <form method="post" action="/priser/{{ r.id }}" class="actions" style="margin-bottom:.6rem; {{ 'opacity:.55' if not r.active }}">
+        <input name="name" value="{{ r.name }}" style="flex:2; min-width:110px" aria-label="Navn" {{ 'readonly' if not r.active }}>
+        <input name="hourly_rate" value="{{ r.hourly_rate|hours }}" inputmode="decimal" style="flex:1; min-width:80px" aria-label="Timepris" {{ 'readonly' if not r.active }}>
+        {% if r.active %}
+          <button class="btn btn-sm" name="action" value="lagre">Lagre</button>
+          <button class="btn btn-sm" name="action" value="opp" title="Flytt opp">↑</button>
+          <button class="btn btn-sm btn-danger" name="action" value="slett"
+                  onclick="return confirm('{{ 'Pristypen er brukt og blir deaktivert.' if r.used else 'Slette pristypen?' }}')">{{ 'Deaktiver' if r.used else 'Slett' }}</button>
+        {% else %}
+          <span class="badge">Inaktiv</span>
+          <button class="btn btn-sm" name="action" value="aktiver">Aktiver</button>
+        {% endif %}
+      </form>
+    {% else %}
+      <p class="muted">Ingen timepris lagt inn.</p>
+    {% endfor %}
+    <form method="post" action="/kunder/{{ customer.id }}/priser" class="actions" style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem">
+      <input name="name" placeholder="{{ 'Standard' if not rates else 'Helg' }}" required style="flex:2; min-width:110px" aria-label="Ny pristype">
+      <input name="hourly_rate" placeholder="kr/t" inputmode="decimal" required style="flex:1; min-width:80px" aria-label="Timepris">
+      <button class="btn btn-sm btn-primary">Legg til</button>
+    </form>
+    <p class="hint" style="margin-top:.75rem">Endrer du en pris, beholder allerede førte timer prisen de ble registrert med.</p>
+  </section>
+  {% endif %}
+</div>
+
+{% if customer %}
+  {% if invoices %}
+  <section class="card">
+    <h2>Fakturaer</h2>
+    <table>
+      <thead><tr><th>Nr.</th><th>Dato</th><th>Periode</th><th>Status</th><th class="num">Beløp</th></tr></thead>
+      <tbody>
+      {% for i in invoices %}
+        <tr class="clickable" onclick="location.href='/fakturaer/{{ i.id }}'">
+          <td><a href="/fakturaer/{{ i.id }}">#{{ i.number }}</a></td><td>{{ i.invoice_date|date }}</td>
+          <td class="small">{{ i.period_from|date }} – {{ i.period_to|date }}</td>
+          <td><span class="badge badge-{{ i.status }}">{{ STATUS_LABELS[i.status] }}</span></td>
+          <td class="num">{{ i.amount|money }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <section class="card no-print">
+    <h2>Arkivering</h2>
+    <div class="actions">
+      <form method="post" action="/kunder/{{ customer.id }}/aktiv" class="inline">
+        <button class="btn">{{ 'Arkiver kunden' if customer.active else 'Gjør aktiv igjen' }}</button>
+      </form>
+      {% if stats.count == 0 and not invoices %}
+      <form method="post" action="/kunder/{{ customer.id }}/slett" class="inline" onsubmit="return confirm('Slette kunden permanent?')">
+        <button class="btn btn-danger">Slett kunden</button>
+      </form>
+      {% endif %}
+    </div>
+    <p class="hint">Arkiverte kunder skjules fra skjemaer og oversikt, men historikken beholdes.</p>
+  </section>
+{% endif %}
+{% endblock %}

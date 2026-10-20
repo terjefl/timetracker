@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Timer{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Timer</h1><p class="muted">Registrer og se gjennom førte timer.</p></div>
+</div>
+<div class="grid grid-main">
+  <div>
+    <section class="card">
+      <form class="filters" method="get">
+        <div class="field"><label for="f-kunde">Kunde</label>
+          <select id="f-kunde" name="kunde" onchange="this.form.submit()">
+            <option value="">Alle kunder</option>
+            {% for c in all_customers %}<option value="{{ c.id }}" {{ 'selected' if filters.kunde == c.id|string }}>{{ c.name }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label for="f-maaned">Måned</label>
+          <select id="f-maaned" name="maaned" onchange="this.form.submit()">
+            <option value="">Alle</option>
+            {% for m in months %}<option value="{{ m }}" {{ 'selected' if filters.maaned == m }}>{{ month_label(m) }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label for="f-status">Status</label>
+          <select id="f-status" name="status" onchange="this.form.submit()">
+            <option value="alle" {{ 'selected' if filters.status == 'alle' }}>Alle</option>
+            <option value="ufakturert" {{ 'selected' if filters.status == 'ufakturert' }}>Ufakturert</option>
+            <option value="fakturert" {{ 'selected' if filters.status == 'fakturert' }}>Fakturert</option>
+          </select></div>
+        <noscript><button class="btn">Filtrer</button></noscript>
+      </form>
+    </section>
+    <section class="card">
+      <h2>{{ summary.count }} registreringer <span class="muted small">{{ summary.hours|hours }} t · {{ summary.amount|money }}</span></h2>
+      {% if entries %}
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dato</th><th>Kunde</th><th>Beskrivelse</th><th class="num">Timer</th><th class="num hide-sm">Beløp</th><th></th></tr></thead>
+        <tbody>
+        {% for e in entries %}
+          <tr class="clickable" onclick="location.href='/timer/{{ e.id }}'">
+            <td class="nowrap">{{ e.work_date|date }}</td>
+            <td>{{ e.customer_name }}{% if e.rate_name %}<div class="muted small">{{ e.rate_name }} · {{ e.hourly_rate|rate }}</div>{% endif %}</td>
+            <td class="desc">{{ e.description }}</td>
+            <td class="num">{{ e.hours|hours }}</td>
+            <td class="num hide-sm">{{ e.amount|money }}</td>
+            <td>{% if e.invoice_number %}<span class="badge badge-{{ e.invoice_status }}" title="Faktura #{{ e.invoice_number }}, {{ STATUS_LABELS[e.invoice_status]|lower }}">#{{ e.invoice_number }}</span>{% else %}<span class="badge badge-open">Åpen</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}<div class="empty">Ingen timer i utvalget.</div>{% endif %}
+    </section>
+  </div>
+  <aside>
+    <section class="card">
+      <h2>Registrer timer</h2>
+      {% if customers %}
+      <form method="post" action="/timer">
+        <input type="hidden" name="next" value="{{ request.url.path }}{{ '?' ~ request.url.query if request.url.query }}">
+        {% set entry = None %}{% set locked = False %}
+        {% include "_entry_fields.html" %}
+        <button class="btn btn-accent btn-block" type="submit">Lagre timer</button>
+      </form>
+      {% else %}
+        <p class="muted">Opprett en kunde først.</p>
+        <a class="btn btn-primary btn-block" href="/kunder/ny">Ny kunde</a>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

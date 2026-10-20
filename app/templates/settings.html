@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Innstillinger{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Innstillinger</h1><p class="muted">Avsenderinfo og oppsett for fakturaer.</p></div></div>
+<form method="post" class="grid grid-2">
+  <section class="card">
+    <h2>Avsender</h2>
+    <div class="field"><label for="sender_name">Navn</label><input id="sender_name" name="sender_name" value="{{ settings.sender_name }}"></div>
+    <div class="field"><label for="sender_address">Adresse</label><textarea id="sender_address" name="sender_address" rows="2">{{ settings.sender_address }}</textarea></div>
+    <div class="field-row">
+      <div class="field"><label for="sender_phone">Telefon</label><input id="sender_phone" name="sender_phone" value="{{ settings.sender_phone }}"></div>
+      <div class="field"><label for="sender_email">E-post</label><input id="sender_email" name="sender_email" type="email" value="{{ settings.sender_email }}"></div>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Faktura</h2>
+    <div class="field"><label for="account_number">Kontonummer</label><input id="account_number" name="account_number" value="{{ settings.account_number }}" placeholder="1234.56.78901"></div>
+    <div class="field-row">
+      <div class="field"><label for="payment_days">Betalingsfrist (dager)</label><input id="payment_days" name="payment_days" inputmode="numeric" value="{{ settings.payment_days }}"></div>
+      <div class="field"><label for="next_invoice_number">Neste fakturanummer</label><input id="next_invoice_number" name="next_invoice_number" inputmode="numeric" value="{{ settings.next_invoice_number }}"></div>
+    </div>
+    <div class="field"><label for="invoice_footer">Bunntekst</label><textarea id="invoice_footer" name="invoice_footer" rows="2">{{ settings.invoice_footer }}</textarea></div>
+    <button class="btn btn-primary" type="submit">Lagre innstillinger</button>
+  </section>
+</form>
+{% endblock %}

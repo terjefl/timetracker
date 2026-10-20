@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Faktura #{{ inv.number }}{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div class="actions">
+    <a class="btn btn-sm" href="/fakturaer">← Fakturaer</a>
+    <span class="badge badge-{{ inv.status }}">{{ STATUS_LABELS[inv.status] }}</span>
+    {% if inv.sent_at %}<span class="muted small">sendt {{ inv.sent_at|date }}</span>{% endif %}
+    {% if inv.paid_at %}<span class="muted small">· betalt {{ inv.paid_at|date }}</span>{% endif %}
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="window.print()">🖨 Skriv ut / PDF</button>
+    {% if inv.status == 'kladd' %}
+      <form method="post" action="/fakturaer/{{ inv.id }}/status" class="inline"><input type="hidden" name="status" value="sendt"><button class="btn btn-accent">Marker som sendt</button></form>
+    {% elif inv.status == 'sendt' %}
+      <form method="post" action="/fakturaer/{{ inv.id }}/status" class="inline"><input type="hidden" name="status" value="betalt"><button class="btn btn-primary">Marker som betalt</button></form>
+    {% endif %}
+  </div>
+</div>
+
+{% if inv.status == 'kladd' %}
+<div class="toolbar" style="display:block">
+  <div class="callout">
+    <strong>Kladd.</strong> Timene er reservert til denne fakturaen og vises ikke lenger som ufakturerte.
+    Kontroller, skriv ut eller lagre som PDF, og trykk «Marker som sendt». Sletter du kladden, blir timene ufakturerte igjen.
+  </div>
+  <details class="card" style="margin-bottom:1rem">
+    <summary style="cursor:pointer; font-weight:600">Endre dato, forfall og merknad</summary>
+    <form method="post" action="/fakturaer/{{ inv.id }}/notat" style="margin-top:1rem">
+      <div class="field-row">
+        <div class="field"><label for="invoice_date">Fakturadato</label><input type="date" id="invoice_date" name="invoice_date" value="{{ inv.invoice_date }}"></div>
+        <div class="field"><label for="due_date">Forfallsdato</label><input type="date" id="due_date" name="due_date" value="{{ inv.due_date }}"></div>
+      </div>
+      <div class="field"><label for="note">Merknad på fakturaen</label><textarea id="note" name="note" rows="2">{{ inv.note }}</textarea></div>
+      <button class="btn btn-primary btn-sm">Lagre</button>
+    </form>
+  </details>
+</div>
+{% endif %}
+
+<article class="doc">
+  <div class="doc-head">
+    <div class="doc-brand"><img src="/static/logo.svg" alt="">
+      <div><p class="doc-title">Faktura</p>
+      {% if inv.status != 'kladd' %}<span class="stamp stamp-{{ inv.status }}">{{ STATUS_LABELS[inv.status] }}</span>{% else %}<span class="stamp stamp-kladd">Kladd</span>{% endif %}</div>
+    </div>
+    <dl class="doc-meta">
+      <dt>Fakturanr.</dt><dd>{{ inv.number }}</dd>
+      <dt>Fakturadato</dt><dd>{{ inv.invoice_date|date }}</dd>
+      <dt>Forfallsdato</dt><dd>{{ inv.due_date|date }}</dd>
+      <dt>Periode</dt><dd>{{ inv.period_from|date }} – {{ inv.period_to|date }}</dd>
+    </dl>
+  </div>
+
+  <div class="doc-parties">
+    <div>
+      <h3>Fra</h3>
+      <p><strong>{{ settings.sender_name or '—' }}</strong>
+{{ settings.sender_address }}{% if settings.sender_phone %}
+Tlf. {{ settings.sender_phone }}{% endif %}{% if settings.sender_email %}
+{{ settings.sender_email }}{% endif %}</p>
+      {% if not settings.sender_name %}<p class="no-print small"><a href="/innstillinger">Legg inn avsenderinfo i Innstillinger</a></p>{% endif %}
+    </div>
+    <div>
+      <h3>Til</h3>
+      <p><strong>{{ customer.name }}</strong>
+{{ customer.address }}{% if customer.phone %}
+Tlf. {{ customer.phone }}{% endif %}{% if customer.email %}
+{{ customer.email }}{% endif %}</p>
+    </div>
+  </div>
+
+  {% set multi = summary.by_type|length > 1 %}
+  <table>
+    <thead><tr><th>Dato</th>{% if multi %}<th>Type</th>{% endif %}<th>Beskrivelse</th><th class="num">Timer</th><th class="num">Pris</th><th class="num">Beløp</th>{% if inv.status == 'kladd' %}<th class="no-print"></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td class="nowrap">{{ e.work_date|date }}</td>
+        {% if multi %}<td class="nowrap">{{ e.rate_name }}</td>{% endif %}
+        <td class="desc">{{ e.description }}</td>
+        <td class="num">{{ e.hours|hours }}</td>
+        <td class="num">{{ e.hourly_rate|rate }}</td>
+        <td class="num">{{ e.amount|money }}</td>
+        {% if inv.status == 'kladd' %}
+        <td class="no-print"><form method="post" action="/fakturaer/{{ inv.id }}/fjern/{{ e.id }}" class="inline"><button class="btn btn-sm btn-danger" title="Fjern fra fakturaen (blir ufakturert)">✕</button></form></td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="doc-summary">
+    {% for t in summary.by_type %}
+      <tr><td>{{ t.name }} <span class="muted">{{ t.hours|hours }} t × {{ t.rate|rate }}</span></td><td class="num">{{ t.amount|money }}</td></tr>
+    {% endfor %}
+    <tr class="doc-total"><td>Å betale</td><td class="num">{{ summary.amount|money }}</td></tr>
+  </table>
+
+  <div class="doc-pay">
+    <div><span>Kontonummer</span><strong>{{ settings.account_number or '—' }}</strong></div>
+    <div><span>Forfall</span><strong>{{ inv.due_date|date }}</strong></div>
+    <div><span>Merk betalingen</span><strong>Faktura {{ inv.number }}</strong></div>
+    <div><span>Beløp</span><strong>{{ summary.amount|money }}</strong></div>
+  </div>
+
+  {% if inv.note %}<p style="margin-top:1.5rem; white-space:pre-line">{{ inv.note }}</p>{% endif %}
+  {% if settings.invoice_footer %}<div class="doc-foot">{{ settings.invoice_footer }}</div>{% endif %}
+</article>
+
+<div class="toolbar no-print" style="margin-top:1.5rem">
+  <div class="actions">
+    {% if inv.status == 'kladd' %}
+      <form method="post" action="/fakturaer/{{ inv.id }}/slett" class="inline" onsubmit="return confirm('Slette kladden? Timene blir ufakturerte igjen.')"><button class="btn btn-danger btn-sm">Slett kladd</button></form>
+    {% else %}
+      <form method="post" action="/fakturaer/{{ inv.id }}/status" class="inline" onsubmit="return confirm('Sette fakturaen tilbake til kladd?')"><input type="hidden" name="status" value="kladd"><button class="btn btn-sm">Tilbake til kladd</button></form>
+      {% if inv.status == 'betalt' %}
+      <form method="post" action="/fakturaer/{{ inv.id }}/status" class="inline"><input type="hidden" name="status" value="sendt"><button class="btn btn-sm">Angre betalt</button></form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

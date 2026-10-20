@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Fakturaer{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Fakturaer</h1><p class="muted">Lag nye fakturaer fra <a href="/rapport">Rapport</a>. Timer på en faktura kommer ikke med i neste rapport over ufakturerte timer.</p></div>
+</div>
+<section class="card">
+  {% if invoices %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Nr.</th><th>Kunde</th><th>Dato</th><th class="hide-sm">Forfall</th><th class="hide-sm">Periode</th><th class="num">Timer</th><th class="num">Beløp</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for i in invoices %}
+      <tr class="clickable" onclick="location.href='/fakturaer/{{ i.id }}'">
+        <td><a href="/fakturaer/{{ i.id }}"><strong>#{{ i.number }}</strong></a></td>
+        <td>{{ i.customer_name }}</td>
+        <td class="nowrap">{{ i.invoice_date|date }}</td>
+        <td class="nowrap hide-sm">{{ i.due_date|date }}</td>
+        <td class="small hide-sm">{{ i.period_from|date }} – {{ i.period_to|date }}</td>
+        <td class="num">{{ i.hours|hours }}</td>
+        <td class="num">{{ i.amount|money }}</td>
+        <td><span class="badge badge-{{ i.status }}">{{ STATUS_LABELS[i.status] }}</span>
+          {% if i.status == 'sendt' and i.due_date < today %}<span class="badge badge-overdue">Forfalt</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <div class="empty">Ingen fakturaer ennå. Gå til <a href="/rapport">Rapport</a>, velg kunde og trykk «Lag faktura».</div>
+  {% endif %}
+</section>
+{% endblock %}

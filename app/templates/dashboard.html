@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Oversikt{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Oversikt</h1>
+    <p class="muted">Timer per kunde og hva som gjenstår å fakturere.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/rapport">Ta ut rapport</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat accent">
+    <div class="stat-label">Ufakturert</div>
+    <div class="stat-value">{{ totals.unbilled_amount|money }}</div>
+    <div class="stat-sub">{{ totals.unbilled_hours|hours }} timer</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Denne måneden</div>
+    <div class="stat-value">{{ totals.month_hours|hours }} t</div>
+    <div class="stat-sub">{{ month_name }} {{ year }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Hittil i år</div>
+    <div class="stat-value">{{ totals.year_hours|hours }} t</div>
+    <div class="stat-sub">{{ year }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Utestående</div>
+    <div class="stat-value">{{ totals.outstanding|money }}</div>
+    <div class="stat-sub">sendte, ubetalte fakturaer</div>
+  </div>
+</div>
+
+<div class="grid grid-main">
+  <div>
+    <section class="card">
+      <h2>Timer per kunde</h2>
+      {% if per_customer %}
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Kunde</th><th class="num">Ufakturert</th><th class="num">Beløp</th>
+          <th class="num hide-sm">{{ month_name|capitalize }}</th><th class="num">I år</th><th class="hide-sm"></th><th class="num hide-sm">Totalt</th>
+        </tr></thead>
+        <tbody>
+        {% for c in per_customer %}
+          <tr class="clickable" onclick="location.href='/rapport?kunde={{ c.id }}'">
+            <td style="min-width:160px"><span class="swatch s{{ palette_index[c.id] }}"></span><a href="/kunder/{{ c.id }}" onclick="event.stopPropagation()">{{ c.name }}</a>
+              {% if c.last_date %}<div class="muted small">Sist {{ c.last_date|date }}</div>{% endif %}</td>
+            <td class="num">{{ c.unbilled_hours|hours }} t</td>
+            <td class="num">{{ c.unbilled_amount|money }}</td>
+            <td class="num hide-sm">{{ c.month_hours|hours }}</td>
+            <td class="num">{{ c.year_hours|hours }}</td>
+            <td class="hide-sm" style="width:22%"><div class="bar-track"><div class="bar-fill s{{ palette_index[c.id] }}" style="width: {{ (c.year_hours / max_year * 100)|round(1) }}%"></div></div></td>
+            <td class="num hide-sm">{{ c.total_hours|hours }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+        <div class="empty">Ingen kunder ennå. <a href="/kunder/ny">Opprett den første kunden</a>.</div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Timer per måned <span class="muted small">siste 12 måneder</span></h2>
+      <div class="chart" role="img" aria-label="Timer per måned">
+        {% for m in chart %}
+          <div class="chart-col" title="{{ m.label }} {{ m.year }}: {{ m.hours|hours }} t">
+            {% if m.hours %}<div class="chart-val">{{ m.hours|round|int }}</div>{% endif %}
+            <div class="chart-stack" style="height: {{ (m.hours / chart_max * 100)|round(1) }}%">
+              {% for p in m.parts %}
+                <div class="s{{ p.color }}" style="height: {{ (p.hours / m.hours * 100)|round(2) }}%" title="{{ p.customer }}: {{ p.hours|hours }} t"></div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="chart-labels">
+        {% for m in chart %}<div class="{{ 'current' if m.current }}">{{ m.label }}</div>{% endfor %}
+      </div>
+      {% if per_customer|length > 1 %}
+      <div class="legend">
+        {% for c in per_customer %}<span><span class="swatch s{{ palette_index[c.id] }}"></span>{{ c.name }}</span>{% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Siste registreringer <a class="btn btn-sm" href="/timer">Alle timer</a></h2>
+      {% if recent %}
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dato</th><th>Kunde</th><th>Beskrivelse</th><th class="num">Timer</th><th></th></tr></thead>
+        <tbody>
+        {% for e in recent %}
+          <tr class="clickable" onclick="location.href='/timer/{{ e.id }}'">
+            <td class="nowrap">{{ e.work_date|date }}</td>
+            <td>{{ e.customer_name }}{% if e.rate_name %}<div class="muted small">{{ e.rate_name }}</div>{% endif %}</td>
+            <td class="desc">{{ e.description }}</td>
+            <td class="num">{{ e.hours|hours }}</td>
+            <td>{% if e.invoice_number %}<span class="badge badge-{{ e.invoice_status }}">#{{ e.invoice_number }}</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}<div class="empty">Ingen timer registrert ennå.</div>{% endif %}
+    </section>
+  </div>
+
+  <aside>
+    <section class="card">
+      <h2>Registrer timer</h2>
+      {% if customers %}
+      <form method="post" action="/timer">
+        <input type="hidden" name="next" value="/">
+        {% set entry = None %}{% set locked = False %}
+        {% include "_entry_fields.html" %}
+        <button class="btn btn-accent btn-block" type="submit">Lagre timer</button>
+      </form>
+      {% else %}
+        <p class="muted">Opprett en kunde først.</p>
+        <a class="btn btn-primary btn-block" href="/kunder/ny">Ny kunde</a>
+      {% endif %}
+    </section>
+
+    {% if open_invoices %}
+    <section class="card">
+      <h2>Åpne fakturaer</h2>
+      <table>
+        <tbody>
+        {% for i in open_invoices %}
+          <tr class="clickable" onclick="location.href='/fakturaer/{{ i.id }}'">
+            <td>#{{ i.number }} <span class="muted">{{ i.customer_name }}</span><br>
+              <span class="badge badge-{{ i.status }}">{{ STATUS_LABELS[i.status] }}</span>
+              {% if i.status == 'sendt' and i.due_date < today %}<span class="badge badge-overdue">Forfalt</span>{% endif %}</td>
+            <td class="num">{{ i.amount|money }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

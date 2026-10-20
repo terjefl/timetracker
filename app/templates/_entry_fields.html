@@ -1,0 +1,66 @@
+{# Felles felter for timeregistrering. Krever customers_json og default_customer/entry. #}
+<div class="field">
+  <label for="customer_id">Kunde</label>
+  <select name="customer_id" id="customer_id" required {{ 'disabled' if locked }}>
+    {% for c in customers %}
+      <option value="{{ c.id }}" {{ 'selected' if (entry and entry.customer_id == c.id) or (not entry and default_customer == c.id) }}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="field-row">
+  <div class="field">
+    <label for="work_date">Dato</label>
+    <input type="date" name="work_date" id="work_date" required value="{{ entry.work_date if entry else today }}" {{ 'disabled' if locked }}>
+  </div>
+  <div class="field">
+    <label for="hours">Timer <span class="hint">f.eks. 1,5 eller 1:30</span></label>
+    <input type="text" name="hours" id="hours" required inputmode="decimal" autocomplete="off"
+           value="{{ entry.hours|hours if entry else '' }}" placeholder="0,0" {{ 'disabled' if locked }}>
+  </div>
+</div>
+<div class="field" id="rate-field" hidden>
+  <label for="rate_type_id">Type</label>
+  <select name="rate_type_id" id="rate_type_id" {{ 'disabled' if locked }}></select>
+</div>
+<p class="hint" id="rate-info"></p>
+<div class="field">
+  <label for="description">Beskrivelse</label>
+  <textarea name="description" id="description" rows="3" placeholder="Hva ble gjort?" {{ 'disabled' if locked }}>{{ entry.description if entry else '' }}</textarea>
+</div>
+<script>
+(function () {
+  const customers = {{ customers_json|safe }};
+  const current = {{ (entry.rate_type_id if entry and entry.rate_type_id else 'null') }};
+  const currentName = {{ (entry.rate_name if entry else '')|tojson }};
+  const currentRate = {{ (entry.hourly_rate if entry else 0)|tojson }};
+  const currentCustomer = {{ (entry.customer_id if entry else 'null') }};
+  const sel = document.getElementById('customer_id');
+  const field = document.getElementById('rate-field');
+  const rateSel = document.getElementById('rate_type_id');
+  const info = document.getElementById('rate-info');
+  const kr = v => new Intl.NumberFormat('nb-NO', {maximumFractionDigits: 2}).format(v) + ' kr/t';
+  function update() {
+    const c = customers.find(c => String(c.id) === sel.value);
+    const rates = c ? c.rates.slice() : [];
+    const sameCustomer = currentCustomer !== null && String(currentCustomer) === sel.value;
+    rateSel.innerHTML = '';
+    // Behold en deaktivert pristype ved redigering
+    if (sameCustomer && current && !rates.some(r => r.id === current)) {
+      rates.unshift({id: current, name: currentName + ' (inaktiv)', rate: currentRate});
+    }
+    rates.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id; o.textContent = r.name + ' — ' + kr(r.rate);
+      if (sameCustomer && r.id === current) o.selected = true;
+      rateSel.appendChild(o);
+    });
+    field.hidden = rates.length < 2;
+    rateSel.disabled = rates.length < 2 || {{ 'true' if locked else 'false' }};
+    if (rates.length === 1) info.textContent = rates[0].name + ': ' + kr(sameCustomer && current ? currentRate : rates[0].rate);
+    else if (rates.length === 0) info.innerHTML = 'Kunden har ingen timepris. <a href="/kunder/' + sel.value + '#priser">Legg til</a>';
+    else info.textContent = '';
+  }
+  sel.addEventListener('change', update);
+  update();
+})();
+</script>

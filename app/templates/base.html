@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Timetracker{% endblock %} · Timetracker</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#1d3557">
+  <link rel="stylesheet" href="/static/style.css?v={{ ASSET_VERSION }}">
+</head>
+<body>
+{% set path = request.url.path %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <img src="/static/logo.svg" alt="">
+      <span class="brand-name">Time<span>tracker</span></span>
+    </a>
+    <button class="btn btn-sm nav-toggle" type="button" onclick="document.querySelector('.nav').classList.toggle('open')" aria-label="Meny">☰</button>
+    <nav class="nav">
+      <a href="/" class="{{ 'active' if path == '/' }}">Oversikt</a>
+      <a href="/timer" class="{{ 'active' if path.startswith('/timer') }}">Timer</a>
+      <a href="/kunder" class="{{ 'active' if path.startswith('/kunder') }}">Kunder</a>
+      <a href="/rapport" class="{{ 'active' if path.startswith('/rapport') }}">Rapport</a>
+      <a href="/fakturaer" class="{{ 'active' if path.startswith('/fakturaer') }}">Fakturaer</a>
+      <a href="/innstillinger" class="{{ 'active' if path.startswith('/innstillinger') }}">Innstillinger</a>
+    </nav>
+  </div>
+</header>
+<main>
+  {% if msg %}<div class="flash flash-ok">{{ msg }}</div>{% endif %}
+  {% if err %}<div class="flash flash-err">{{ err }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer">Timetracker {{ VERSION }}</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

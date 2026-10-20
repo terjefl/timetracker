@@ -1,0 +1,11 @@
+services:
+  timetracker:
+    image: ghcr.io/terjefl/timetracker:latest
+    container_name: timetracker
+    restart: unless-stopped
+    ports:
+      - "8500:8000"
+    environment:
+      - TZ=Europe/Oslo
+    volumes:
+      - ./data:/data

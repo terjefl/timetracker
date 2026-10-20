@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Feil{% endblock %}
+{% block content %}
+<div class="card empty">
+  <h1>{{ status }}</h1>
+  <p>{{ detail }}</p>
+  <p><a class="btn" href="javascript:history.back()">Tilbake</a> <a class="btn" href="/">Til oversikten</a></p>
+</div>
+{% endblock %}
